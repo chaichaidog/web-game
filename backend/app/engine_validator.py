@@ -598,6 +598,7 @@ def simulate_program(program_ast: list[dict[str, Any]], level_data: dict[str, An
         "concepts_used": sorted(list(state["concepts_used"])),
         "node_count": node_count,
         "steps_taken": state["steps"],
+        "bonus_energy": max(0, collected_energy - required_energy),
         "final_state": {
             "x": state["x"],
             "y": state["y"],

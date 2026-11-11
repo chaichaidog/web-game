@@ -89,12 +89,20 @@ export const ZONE_THEMES = {
     accent: '#34d399',
   },
   zone_ai: {
-    name: 'AI 自動化工廠',
+    name: 'AI 核心控制中心',
     bg: '#1b112c',
     floorA: '#291b42',
     floorB: '#211536',
     wall: '#5a3d8a',
     accent: '#a855f7',
+  },
+  zone_abandoned: {
+    name: '廢棄研究區',
+    bg: '#16161a',
+    floorA: '#242629',
+    floorB: '#1c1e21',
+    wall: '#52525b',
+    accent: '#f97316',
   },
   zone_core: {
     name: '最終能源核心',
