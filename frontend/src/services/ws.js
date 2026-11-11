@@ -24,10 +24,16 @@ export class RoomSocketClient {
   _openSocket() {
     if (!this.roomCode || !this.playerCode) return;
 
-    let wsBase = import.meta.env.VITE_WS_URL || '';
-    if (!wsBase && typeof window !== 'undefined') {
-      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      wsBase = `${proto}//${window.location.host}`;
+    let wsBase = (import.meta.env.VITE_WS_URL || '').trim();
+    if (!wsBase) {
+      const host = (import.meta.env.VITE_BACKEND_HOST || '').trim();
+      if (host) {
+        const fullHost = host.includes('.') ? host : `${host}.onrender.com`;
+        wsBase = `wss://${fullHost}`;
+      } else if (typeof window !== 'undefined') {
+        const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        wsBase = `${proto}//${window.location.host}`;
+      }
     }
     wsBase = wsBase.replace(/\/$/, '');
 

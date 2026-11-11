@@ -1,4 +1,15 @@
-const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+function resolveApiBase() {
+  const explicit = (import.meta.env.VITE_API_URL || '').trim().replace(/\/$/, '');
+  if (explicit) return explicit;
+  const host = (import.meta.env.VITE_BACKEND_HOST || '').trim();
+  if (host) {
+    const fullHost = host.includes('.') ? host : `${host}.onrender.com`;
+    return `https://${fullHost}`;
+  }
+  return '';
+}
+
+const API_BASE = resolveApiBase();
 
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`;
