@@ -7,6 +7,8 @@ const CARD_TYPES = [
   { type: 'turn_right', icon: '↪️', title: '向右轉', sub: '原地順時針 90°', color: '#0369a1' },
   { type: 'pickup', icon: '⚡', title: '撿取能源', sub: '收集腳下晶片', color: '#d97706' },
   { type: 'repair_device', icon: '🔧', title: '修復設備', sub: '啟動受損發電機', color: '#b45309' },
+  { type: 'activate_switch', icon: '🔘', title: '啟動開關', sub: '切換腳下控制開關', color: '#7c3aed' },
+  { type: 'open_door', icon: '🚪', title: '開啟閘門', sub: '解鎖前方安全門', color: '#059669' },
 ];
 
 export class ActionCardEditor {

@@ -1,5 +1,6 @@
 import hashlib
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from .models import Level, LevelVariant, Achievement, Teacher
 from .config import settings
 
@@ -114,10 +115,10 @@ LEVELS_SEED = [
         "chapter_id": 1,
         "chapter_name": "第一章：新手維修區",
         "level_order": 1,
-        "level_name": "1-1 喚醒維修機器人：直線前進",
-        "description": "NOVA 中央控制室的備用機器人已啟動！請排列「前進」指令卡，引導機器人走到綠色的終點傳送站。",
+        "level_name": "1-1 喚醒維修機器人：序列啟動",
+        "description": "NOVA 中央控制室的備用機器人已啟動！基礎版跟著地面引導箭頭前進；標準版挑戰轉彎與撿取能源；挑戰版則需在雙岔路障礙中規劃最佳維修路線！",
         "difficulty": "guided",
-        "learning_objective": "認識什麼是電腦指令，理解機器人會由上而下、一步一步按照順序執行指令。",
+        "learning_objective": "認識什麼是電腦指令，理解機器人會由上而下、一步一步按照順序執行移動、轉向與互動指令。",
         "concept_code": "sequence",
         "editor_mode": "cards",
         "variants": {
@@ -156,62 +157,79 @@ LEVELS_SEED = [
                 "zone": "zone_control",
                 "width": 7,
                 "height": 6,
-                "start": {"x": 1, "y": 3, "dir": 0},
-                "goal": {"x": 5, "y": 3},
-                "obstacles": [{"x": 1, "y": 2}, {"x": 2, "y": 2}, {"x": 3, "y": 2}, {"x": 4, "y": 2}, {"x": 5, "y": 2}, {"x": 1, "y": 4}, {"x": 2, "y": 4}, {"x": 3, "y": 4}, {"x": 4, "y": 4}, {"x": 5, "y": 4}],
-                "items": [],
+                "start": {"x": 1, "y": 2, "dir": 0},
+                "goal": {"x": 3, "y": 4},
+                "obstacles": [
+                    {"x": 4, "y": 2},
+                    {"x": 1, "y": 3},
+                    {"x": 2, "y": 3},
+                    {"x": 2, "y": 4},
+                    {"x": 4, "y": 4}
+                ],
+                "items": [{"x": 3, "y": 2, "type": "energy", "value": 1}],
                 "switches": [],
                 "doors": [],
                 "devices": [],
                 "floor_arrows": [],
-                "required_energy": 0,
-                "allowed_blocks": ["move_forward", "turn_left", "turn_right"],
+                "required_energy": 1,
+                "allowed_blocks": ["move_forward", "turn_left", "turn_right", "pickup"],
                 "four_step_guide": {
-                    "step1_concrete": "自行觀察起點與終點的格數差距，排列正確數量的「前進」指令。",
-                    "step2_visual": "執行時每一步都會高亮目前正在執行的指令卡或積木。",
-                    "step3_logic": "電腦不會自己猜測終點在哪裡，必須精確給出每一步移動指令。",
-                    "step4_code": "每一個前進指令對應一行 move_forward()。"
+                    "step1_concrete": "標準版出現了 L 型轉角與能源晶片！請自行排列前進、撿取能源與右轉的順序。",
+                    "step2_visual": "機器人走到轉角 (3, 2) 時，必須先「撿取能源」並「向右轉」，才能往南走到終點 (3, 4)。",
+                    "step3_logic": "注意：「向右轉」只會原地改變面向角度，轉完後還要繼續放「前進一步」才會移動！",
+                    "step4_code": "觀察 move_forward()、pickup() 與 turn_right() 的組合順序。"
                 },
                 "hints": [
-                    "提示一（注意觀察）：機器人目前在 x=1，終點在 x=5，中間沒有轉彎。",
-                    "提示二（概念提醒）：從第 1 格走到第 5 格需要前進幾次呢？",
-                    "提示三（局部示範）：放入 4 個「前進一步」指令即可抵達終點。"
+                    "提示一（注意觀察）：能源晶片位於轉角 (3, 2)，終點位於下方的 (3, 4)。",
+                    "提示二（概念提醒）：從 (1, 2) 前進 2 次到達 (3, 2) 後，執行「撿取能源」與「向右轉」，再前進 2 次抵達 (3, 4)。",
+                    "提示三（局部示範）：前進一步 → 前進一步 → 撿取能源 → 向右轉 → 前進一步 → 前進一步。"
                 ],
                 "example_ast": [],
                 "reflection_question": {
-                    "question": "為什麼電腦需要我們明確寫出每一步「前進」？",
-                    "options": ["因為電腦會嚴格按照指令順序逐步執行", "因為機器人看不見地圖", "純粹為了增加字數"]
+                    "question": "為什麼在轉角 (3, 2) 執行「向右轉」之後，還需要再放 2 張「前進一步」？",
+                    "options": ["因為轉彎指令只會原地改變方向，不會自動往前走", "因為機器人走太慢", "純粹為了湊字數"]
                 }
             },
             "challenge": {
                 "zone": "zone_control",
                 "width": 8,
-                "height": 6,
-                "start": {"x": 1, "y": 2, "dir": 0},
-                "goal": {"x": 6, "y": 2},
-                "obstacles": [{"x": 2, "y": 1}, {"x": 3, "y": 1}, {"x": 4, "y": 1}, {"x": 5, "y": 1}, {"x": 2, "y": 3}, {"x": 4, "y": 3}, {"x": 6, "y": 3}],
-                "items": [],
+                "height": 7,
+                "start": {"x": 1, "y": 3, "dir": 0},
+                "goal": {"x": 6, "y": 3},
+                "obstacles": [
+                    {"x": 3, "y": 3},
+                    {"x": 4, "y": 3},
+                    {"x": 2, "y": 1},
+                    {"x": 4, "y": 1},
+                    {"x": 2, "y": 5},
+                    {"x": 4, "y": 5}
+                ],
+                "items": [
+                    {"x": 3, "y": 2, "type": "energy", "value": 1},
+                    {"x": 3, "y": 4, "type": "energy", "value": 1}
+                ],
                 "switches": [],
                 "doors": [],
-                "devices": [],
+                "devices": [{"x": 5, "y": 3, "id": "dev_boot", "requires_energy": 1}],
                 "floor_arrows": [],
-                "required_energy": 0,
-                "allowed_blocks": ["move_forward", "turn_left", "turn_right"],
+                "required_energy": 1,
+                "require_all_devices": True,
+                "allowed_blocks": ["move_forward", "turn_left", "turn_right", "pickup", "repair_device"],
                 "four_step_guide": {
-                    "step1_concrete": "在較長的狹窄維修橋上精確計算步數抵達終點。",
-                    "step2_visual": "可使用「單步執行」按鈕一步一步驗證機器人位置。",
-                    "step3_logic": "思考看看：如果直線前進 5 次，機器人座標會如何變化？",
-                    "step4_code": "觀察連續 5 個 move_forward()，為下一章的「迴圈」做準備。"
+                    "step1_concrete": "挑戰版中央通道被障礙物封鎖了！上下兩條岔路各有 1 顆能源晶片，任選一條繞行收集能源，並到 (5, 3) 修復設備後抵達 (6, 3)。",
+                    "step2_visual": "比較看看：從 (2, 3) 走北側岔路 (y=2) 或南側岔路 (y=4) 都能拿到能源並匯合到 (5, 3) 的發電機！",
+                    "step3_logic": "分析多岔路與先後依賴：必須先在岔路「撿取能源」，回到 (5, 3) 才能成功「修復設備」。",
+                    "step4_code": "體會同一任務目標可以有不同的路徑規劃與選擇理由！"
                 },
                 "hints": [
-                    "提示一（注意觀察）：起點在 (1, 2)，終點在 (6, 2)，兩側有護欄障礙物。",
-                    "提示二（概念提醒）：不需要轉彎，只要算準直線前進的格數（6 - 1 = 5）。",
-                    "提示三（局部示範）：連續排列 5 個「前進一步」指令。"
+                    "提示一（注意觀察）：正前方 (3, 3) 與 (4, 3) 被障礙擋住了！你可以在 (2, 3) 左轉走上方 (y=2) 或右轉走下方 (y=4)。",
+                    "提示二（概念提醒）：若選上方路線：前進到 (2,3) → 左轉 → 前進到 (2,2) → 右轉 → 前進到 (3,2) 撿取能源 → 前進2次到 (5,2) → 右轉 → 前進到 (5,3) 修復設備 → 左轉 → 前進到 (6,3)。",
+                    "提示三（局部示範）：記得在 (5, 3) 的橘色設備格執行「修復設備」，再往東走 1 格到綠色終點 (6, 3)！"
                 ],
                 "example_ast": [],
                 "reflection_question": {
-                    "question": "當需要連續前進 5 次甚至 50 次時，一直放相同的卡片會有什麼缺點？",
-                    "options": ["程式會變得很長且容易數錯，之後可以用迴圈改善", "電腦會拒絕執行超過 3 個指令", "沒有任何影響"]
+                    "question": "在這個雙岔路挑戰中，走上方路線 (y=2) 與走下方路線 (y=4) 步數相同且都能過關，這說明了什麼？",
+                    "options": ["面對有多條岔路的問題時，只要能避開干擾物並滿足任務條件，不同路徑都是好解法", "只有走上方才算正確", "電腦不允許走下方路線"]
                 }
             }
         }
@@ -741,37 +759,42 @@ LEVELS_SEED = [
                 "zone": "zone_energy",
                 "width": 8,
                 "height": 6,
-                "start": {"x": 1, "y": 3, "dir": 0},
-                "goal": {"x": 6, "y": 3},
-                "obstacles": [{"x": 2, "y": 2}, {"x": 4, "y": 2}, {"x": 6, "y": 2}, {"x": 2, "y": 4}, {"x": 4, "y": 4}, {"x": 6, "y": 4}],
+                "start": {"x": 1, "y": 2, "dir": 0},
+                "goal": {"x": 5, "y": 4},
+                "obstacles": [
+                    {"x": 6, "y": 2},
+                    {"x": 2, "y": 3},
+                    {"x": 3, "y": 3},
+                    {"x": 4, "y": 3},
+                    {"x": 6, "y": 3}
+                ],
                 "items": [
-                    {"x": 2, "y": 3, "type": "energy", "value": 1},
-                    {"x": 3, "y": 3, "type": "energy", "value": 1},
-                    {"x": 4, "y": 3, "type": "energy", "value": 1},
-                    {"x": 5, "y": 3, "type": "energy", "value": 1},
-                    {"x": 6, "y": 3, "type": "energy", "value": 1}
+                    {"x": 2, "y": 2, "type": "energy", "value": 1},
+                    {"x": 3, "y": 2, "type": "energy", "value": 1},
+                    {"x": 4, "y": 2, "type": "energy", "value": 1},
+                    {"x": 5, "y": 2, "type": "energy", "value": 1}
                 ],
                 "switches": [],
                 "doors": [],
                 "devices": [],
                 "floor_arrows": [],
-                "required_energy": 5,
+                "required_energy": 4,
                 "allowed_blocks": ["move_forward", "turn_left", "turn_right", "pickup", "repeat_n"],
                 "four_step_guide": {
-                    "step1_concrete": "長廊上有 5 顆能源晶片，試著修改迴圈的重複次數來一次收集完畢！",
-                    "step2_visual": "修改「重複 N 次」積木上的數字為 5。",
-                    "step3_logic": "體會迴圈的好處：無論走廊變成 5 格還是 10 格，只需改一個數字！",
-                    "step4_code": "觀察 Python 預覽中的 `for i in range(5):`。"
+                    "step1_concrete": "長廊上有 4 顆能源晶片，但終點位於轉角下方的 (5, 4)！",
+                    "step2_visual": "先用「重複 4 次 { 前進一步, 撿取能源 }」走完橫向長廊，再在迴圈外加上「向右轉」與 2 次「前進一步」。",
+                    "step3_logic": "分辨「重複發生的動作（放迴圈內）」與「只做一次的收尾動作（放迴圈外）」。",
+                    "step4_code": "觀察 Python 預覽中縮排在 `for` 迴圈內與迴圈外的差別。"
                 },
                 "hints": [
-                    "提示一（注意觀察）：從 (1, 3) 到 (6, 3) 共有 5 格，每格都有 1 顆能源。",
-                    "提示二（概念提醒）：將「重複 N 次」的次數設為 5，內部放「前進一步」與「撿取能源」。",
-                    "提示三（局部示範）：重複 5 次 { 前進一步, 撿取能源 }。"
+                    "提示一（注意觀察）：(2,2) 到 (5,2) 有連續 4 顆能源晶片，走到 (5,2) 後需要向右轉往南走到 (5,4)。",
+                    "提示二（概念提醒）：將「重複 4 次 { 前進一步, 撿取能源 }」排好後，在迴圈下方接上「向右轉 → 前進一步 → 前進一步」。",
+                    "提示三（局部示範）：重複 4 次 { 前進一步, 撿取能源 } → 向右轉 → 前進一步 → 前進一步。"
                 ],
                 "example_ast": [],
                 "reflection_question": {
-                    "question": "如果走廊從 5 格加長到 20 格，使用迴圈只需要改什麼？",
-                    "options": ["只需要把迴圈的重複次數改成 20", "要重新拉 40 個積木", "完全不能用迴圈"]
+                    "question": "為什麼「向右轉」要放在「重複 4 次」迴圈的外面（下方），而不是放在迴圈裡面？",
+                    "options": ["因為我們只需要在收集完 4 顆能源後轉彎一次，放裡面會每走一格就轉彎", "因為迴圈裡面不能放轉彎積木", "放裡面或外面結果完全一樣"]
                 }
             },
             "challenge": {
@@ -1132,33 +1155,39 @@ LEVELS_SEED = [
             },
             "core": {
                 "zone": "zone_eco",
-                "width": 9,
+                "width": 8,
                 "height": 6,
-                "start": {"x": 1, "y": 3, "dir": 0},
-                "goal": {"x": 7, "y": 3},
-                "obstacles": [{"x": 6, "y": 2}, {"x": 6, "y": 4}],
+                "start": {"x": 1, "y": 2, "dir": 0},
+                "goal": {"x": 5, "y": 4},
+                "obstacles": [
+                    {"x": 6, "y": 2},
+                    {"x": 2, "y": 3},
+                    {"x": 3, "y": 3},
+                    {"x": 4, "y": 3},
+                    {"x": 6, "y": 3}
+                ],
                 "items": [
-                    {"x": 2, "y": 3, "type": "energy", "value": 1},
-                    {"x": 3, "y": 3, "type": "energy", "value": 1},
-                    {"x": 4, "y": 3, "type": "energy", "value": 1},
-                    {"x": 5, "y": 3, "type": "energy", "value": 1}
+                    {"x": 2, "y": 2, "type": "energy", "value": 1},
+                    {"x": 3, "y": 2, "type": "energy", "value": 1},
+                    {"x": 4, "y": 2, "type": "energy", "value": 1},
+                    {"x": 5, "y": 2, "type": "energy", "value": 1}
                 ],
                 "switches": [],
-                "doors": [{"x": 6, "y": 3, "id": "door_main", "open": False, "requires_energy": 4}],
+                "doors": [{"x": 5, "y": 3, "id": "door_main", "open": False, "requires_energy": 4}],
                 "devices": [],
                 "floor_arrows": [],
                 "required_energy": 4,
                 "allowed_blocks": ["move_forward", "turn_left", "turn_right", "pickup", "open_door", "repeat_n", "if", "var_compare", "var_set", "var_change"],
                 "four_step_guide": {
-                    "step1_concrete": "收集 4 顆能源晶片，並使用 `energy >= 4` 條件判斷開啟 (6, 3) 的安全閘門。",
-                    "step2_visual": "觀察每次撿取時狀態面板的數值變化，確認在抵達閘門前達到 4。",
-                    "step3_logic": "如果 `energy` 只有 3 就嘗試執行 `open_door()`，閘門會拒絕開啟！",
-                    "step4_code": "練習修改比較運算的目標數值。"
+                    "step1_concrete": "沿著北側長廊收集 4 顆能源晶片，在 (5, 2) 向右轉面對南側閘門 (5, 3)，並用 `energy >= 4` 判斷開門！",
+                    "step2_visual": "觀察每次撿取時狀態面板的數值變化，確認轉彎面向閘門時 `energy` 已達到 4。",
+                    "step3_logic": "注意：開啟閘門指令必須在機器人「面向閘門 (5, 3)」時執行，因此要先「向右轉」再判斷開門！",
+                    "step4_code": "練習結合迴圈、轉向與變數比較條件。"
                 },
                 "hints": [
-                    "提示一（注意觀察）：這道強化閘門位於 (6, 3)，需要至少 4 顆能源才能開啟。",
-                    "提示二（概念提醒）：重複 4 次 { 前進, 撿取 } → 如果 (energy >= 4) { 開啟閘門 } → 前進 2 次。",
-                    "提示三（局部示範）：別忘了開門之後還要再前進 2 格才會從 (5, 3) 穿過閘門到達 (7, 3) 喔！"
+                    "提示一（注意觀察）：(2,2)~(5,2) 有 4 顆能源，強化閘門在 (5,2) 正下方的 (5,3)，終點在 (5,4)。",
+                    "提示二（概念提醒）：重複 4 次 { 前進, 撿取 } → 向右轉 → 如果 (energy >= 4) { 開啟閘門 } → 前進 2 次。",
+                    "提示三（局部示範）：別忘了在 (5, 2) 先「向右轉」面向 (5, 3) 閘門，再開門並前進 2 格到 (5, 4) 喔！"
                 ],
                 "example_ast": [],
                 "reflection_question": {
@@ -1684,6 +1713,7 @@ def seed_database(db: Session):
             lv_obj.learning_objective = lv_seed["learning_objective"]
             lv_obj.editor_mode = lv_seed["editor_mode"]
             lv_obj.level_data = default_data
+            flag_modified(lv_obj, "level_data")
             db.flush()
 
         existing_vars = {
@@ -1702,6 +1732,7 @@ def seed_database(db: Session):
                 )
             else:
                 existing_vars[tier_key].level_data = tier_data
+                flag_modified(existing_vars[tier_key], "level_data")
 
     # 3. Seed Default Teacher Account
     default_teacher = db.query(Teacher).filter(Teacher.auth_subject == "teacher_default").first()

@@ -23,7 +23,16 @@ def test_health_and_levels():
             g = lv["variants"]["guided"]
             c = lv["variants"]["core"]
             ch = lv["variants"]["challenge"]
-            assert g != c or c != ch
+            assert g != c and c != ch
+
+        # Specifically verify ch1_lv1 3 tiers are structurally different (not all straight lines)
+        ch1_lv1 = next(lv for lv in levels if lv["level_code"] == "ch1_lv1")
+        assert ch1_lv1["variants"]["guided"]["required_energy"] == 0
+        assert ch1_lv1["variants"]["core"]["required_energy"] == 1
+        assert ch1_lv1["variants"]["core"]["start"]["y"] != ch1_lv1["variants"]["core"]["goal"]["y"]
+        assert ch1_lv1["variants"]["challenge"]["required_energy"] == 1
+        assert ch1_lv1["variants"]["challenge"].get("require_all_devices") is True
+        assert len(ch1_lv1["variants"]["challenge"]["items"]) == 2
 
 
 def test_player_and_solo_progression():
@@ -306,14 +315,84 @@ def test_all_7_chapters_and_solo_equivalent_coop_levels():
         p = client.post("/api/players", json={"nickname": "全章節測試員"}).json()
         p_code = p["player_code"]
 
-        # Chapter 2 (Loops - Core): repeat 5 times { move_forward, pickup }
+        # Chapter 1 (ch1_lv1 Core - L-turn + energy pickup)
+        r_ch1_core = client.post(
+            "/api/levels/ch1_lv1/submit",
+            json={
+                "player_code": p_code,
+                "difficulty_tier": "core",
+                "program_ast": [
+                    {"type": "move_forward"},
+                    {"type": "move_forward"},
+                    {"type": "pickup"},
+                    {"type": "turn_right"},
+                    {"type": "move_forward"},
+                    {"type": "move_forward"},
+                ],
+            },
+        ).json()
+        assert r_ch1_core["verified"] is True
+
+        # Chapter 1 (ch1_lv1 Challenge - North route and South route both pass!)
+        r_ch1_chal_north = client.post(
+            "/api/levels/ch1_lv1/submit",
+            json={
+                "player_code": p_code,
+                "difficulty_tier": "challenge",
+                "program_ast": [
+                    {"type": "move_forward"},
+                    {"type": "turn_left"},
+                    {"type": "move_forward"},
+                    {"type": "turn_right"},
+                    {"type": "move_forward"},
+                    {"type": "pickup"},
+                    {"type": "move_forward"},
+                    {"type": "move_forward"},
+                    {"type": "turn_right"},
+                    {"type": "move_forward"},
+                    {"type": "repair_device"},
+                    {"type": "turn_left"},
+                    {"type": "move_forward"},
+                ],
+            },
+        ).json()
+        assert r_ch1_chal_north["verified"] is True
+
+        r_ch1_chal_south = client.post(
+            "/api/levels/ch1_lv1/submit",
+            json={
+                "player_code": p_code,
+                "difficulty_tier": "challenge",
+                "program_ast": [
+                    {"type": "move_forward"},
+                    {"type": "turn_right"},
+                    {"type": "move_forward"},
+                    {"type": "turn_left"},
+                    {"type": "move_forward"},
+                    {"type": "pickup"},
+                    {"type": "move_forward"},
+                    {"type": "move_forward"},
+                    {"type": "turn_left"},
+                    {"type": "move_forward"},
+                    {"type": "repair_device"},
+                    {"type": "turn_right"},
+                    {"type": "move_forward"},
+                ],
+            },
+        ).json()
+        assert r_ch1_chal_south["verified"] is True
+
+        # Chapter 2 (Loops - Core): repeat 4 times { move_forward, pickup } + turn_right + 2x move_forward
         r_ch2 = client.post(
             "/api/levels/ch2_lv1/submit",
             json={
                 "player_code": p_code,
                 "difficulty_tier": "core",
                 "program_ast": [
-                    {"type": "repeat_n", "count": 5, "body": [{"type": "move_forward"}, {"type": "pickup"}]}
+                    {"type": "repeat_n", "count": 4, "body": [{"type": "move_forward"}, {"type": "pickup"}]},
+                    {"type": "turn_right"},
+                    {"type": "move_forward"},
+                    {"type": "move_forward"},
                 ],
             },
         ).json()
@@ -347,7 +426,7 @@ def test_all_7_chapters_and_solo_equivalent_coop_levels():
         ).json()
         assert r_ch3["verified"] is True
 
-        # Chapter 4 (Variables - Core): collect 4 energy and compare energy >= 4 to open door
+        # Chapter 4 (Variables - Core): collect 4 energy, turn_right, compare energy >= 4 to open door
         r_ch4 = client.post(
             "/api/levels/ch4_lv1/submit",
             json={
@@ -355,6 +434,7 @@ def test_all_7_chapters_and_solo_equivalent_coop_levels():
                 "difficulty_tier": "core",
                 "program_ast": [
                     {"type": "repeat_n", "count": 4, "body": [{"type": "move_forward"}, {"type": "pickup"}]},
+                    {"type": "turn_right"},
                     {
                         "type": "if",
                         "condition": {"type": "var_compare", "var": "energy", "op": ">=", "value": 4},
