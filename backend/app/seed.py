@@ -87,6 +87,15 @@ ACHIEVEMENTS_SEED = [
         "xp_reward": 150,
     },
     {
+        "achievement_code": "secret_finder",
+        "name": "秘密探索者",
+        "description": "在基地隱藏支線或廢棄研究區發現額外的隱藏能源晶片。",
+        "category": "exploration",
+        "reward_type": "skin",
+        "reward_value": "void_stealth",
+        "xp_reward": 120,
+    },
+    {
         "achievement_code": "nova_savior",
         "name": "NOVA 傳奇守護者",
         "description": "完成最終章「重啟 NOVA 核心」，恢復整座研究基地運作！",

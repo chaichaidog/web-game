@@ -31,6 +31,14 @@ export const ROBOT_SKINS = [
     eye: '#38bdf8',
     desc: '授予完成高階挑戰的王牌修復小隊榮譽塗裝。',
   },
+  {
+    id: 'void_stealth',
+    name: '暗影探索潛行型',
+    primary: '#6366f1',
+    secondary: '#e0e7ff',
+    eye: '#f43f5e',
+    desc: '在廢棄研究區與隱藏房間發現秘密能源的探索者專屬機體。',
+  },
 ];
 
 export const HEAD_ACCESSORIES = [

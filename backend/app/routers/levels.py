@@ -83,6 +83,7 @@ def check_and_unlock_achievements(
     concepts_used: list[str],
     had_prior_error: bool,
     is_coop: bool,
+    bonus_energy: int = 0,
 ) -> list[dict]:
     all_ach = {a.achievement_code: a for a in db.query(Achievement).all()}
     existing_ids = {
@@ -109,6 +110,8 @@ def check_and_unlock_achievements(
         codes_to_unlock.add("best_teammate")
     if difficulty_tier == "challenge":
         codes_to_unlock.add("challenge_explorer")
+    if bonus_energy > 0 or level.level_code == "ch7_lv1":
+        codes_to_unlock.add("secret_finder")
     if level.chapter_id >= 7:
         codes_to_unlock.add("nova_savior")
 
@@ -315,6 +318,7 @@ async def submit_level_program(level_code: str, req: ProgramSubmitRequest, db: S
             concepts_used=sim_result.get("concepts_used", []),
             had_prior_error=bool(prior_error),
             is_coop=bool(room and len(room_members) > 1),
+            bonus_energy=int(sim_result.get("bonus_energy", 0)),
         )
         if p.id == player.id:
             all_new_achievements = unlocked

@@ -26,7 +26,7 @@ from ..adaptive import compute_player_learning_summary
 
 router = APIRouter(prefix="/api/players", tags=["players"])
 
-DEFAULT_SKINS = ["nova_scout", "crimson_mech", "emerald_guardian", "quantum_gold"]
+DEFAULT_SKINS = ["nova_scout", "crimson_mech", "emerald_guardian", "quantum_gold", "void_stealth"]
 DEFAULT_ACCESSORIES = ["antenna_basic", "holo_visor", "radar_dish", "plasma_crown"]
 DEFAULT_DECORS = ["holo_plant", "energy_fountain", "mini_drone", "core_trophy"]
 
