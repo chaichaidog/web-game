@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NOVA Protocol — 失落基地 | 科幻冒險程式教育遊戲</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body class="text-size-medium">
+  <div id="app">
+    <!-- ==================== 1. 頂部基地導航與狀態列 ==================== -->
+    <header class="nova-topbar">
+      <div class="topbar-brand">
+        <button type="button" class="btn-home-logo" id="btn-open-main-menu" title="返回 NOVA 主選單">
+          <span class="brand-badge">NOVA</span>
+          <div class="brand-titles">
+            <h1>NOVA Protocol — 失落基地</h1>
+            <small id="current-zone-subtitle">NOVA 中央控制室</small>
+          </div>
+        </button>
+      </div>
+
+      <div class="topbar-level-selector">
+        <button type="button" class="btn-level-picker" id="btn-open-level-modal" title="選擇章節與關卡">
+          <span id="current-level-title">1-1 喚醒維修機器人：直線前進</span>
+          <span class="dropdown-caret">▾</span>
+        </button>
+
+        <!-- 三層難度切換器 (基礎 Guided / 標準 Core / 挑戰 Challenge) -->
+        <div class="difficulty-switcher" role="group" aria-label="關卡難度層級">
+          <button type="button" class="diff-btn active" data-diff="guided" title="基礎引導：較短路線、地面方向提示與範例">
+            🌱 基礎
+          </button>
+          <button type="button" class="diff-btn" data-diff="core" title="標準核心：獨立規劃並組合程式">
+            ⚡ 標準
+          </button>
+          <button type="button" class="diff-btn" data-diff="challenge" title="進階挑戰：多路線、複合條件與結構比較">
+            🔥 挑戰
+          </button>
+        </div>
+      </div>
+
+      <!-- 即時變數與任務狀態 HUD -->
+      <div class="topbar-vars-hud" id="topbar-vars-hud">
+        <div class="hud-chip hud-energy" title="目前收集的能源晶片 (變數 energy)">
+          <span>⚡ 能源 (energy)：</span>
+          <strong id="hud-energy-val">0 / 0</strong>
+        </div>
+        <div class="hud-chip hud-steps" title="目前執行的步數">
+          <span>👣 步數：</span>
+          <strong id="hud-steps-val">0</strong>
+        </div>
+      </div>
+
+      <!-- 玩家與房間功能按鈕區 -->
+      <div class="topbar-actions">
+        <button type="button" class="btn-top-action" id="btn-open-lobby" title="1～4 人合作房間與課堂場次">
+          🤝 房間 <span id="topbar-room-badge" class="badge-pill">單人</span>
+        </button>
+        <button type="button" class="btn-top-action" id="btn-open-profile" title="角色塗裝、基地裝飾與成就收藏">
+          🤖 <span id="topbar-player-name">修復員</span> <span id="topbar-xp-badge" class="xp-pill">0 XP</span>
+        </button>
+        <button type="button" class="btn-top-action" id="btn-open-teacher" title="教師端／課堂教學管理中心">
+          🎓 教師端
+        </button>
+        <button type="button" class="btn-top-action" id="btn-open-settings" title="音效、動畫速度與字級設定">
+          ⚙️
+        </button>
+      </div>
+    </header>
+
+    <!-- 窄螢幕／手機操作友善提醒橫幅 -->
+    <div class="mobile-screen-notice">
+      📱 提示：您目前使用較窄螢幕，可正常瀏覽大廳、進度與執行機器人；若需進行複雜 Blockly 積木拖曳，建議使用平板橫向或電腦瀏覽器獲得最佳體驗。
+    </div>
+
+    <!-- ==================== 2. 主遊戲工作區（左：遊戲地圖與任務，右：程式編輯與執行） ==================== -->
+    <main class="nova-main-workspace">
+      <!-- 左側：任務簡報、Phaser 2D 像素地圖、四段式概念引導、合作小隊狀態 -->
+      <section class="left-game-column">
+        <!-- 任務目標卡片與三層提示按鈕 -->
+        <div class="mission-brief-card">
+          <div class="mission-brief-top">
+            <div>
+              <span class="chapter-tag" id="brief-chapter-tag">第一章：新手維修區</span>
+              <span class="recommend-tag hidden" id="brief-recommend-tag">✨ 系統推薦難度</span>
+            </div>
+            <div class="mission-brief-btns">
+              <button type="button" class="btn-guide-toggle" id="btn-toggle-4step" title="展開/收合四段式概念引導">
+                📘 概念四步引導
+              </button>
+              <button type="button" class="btn-hint-trigger" id="btn-request-hint" title="取得分段觀察與概念提示（不會扣分！）">
+                💡 呼叫提示 (<span id="hint-tier-count">0/3</span>)
+              </button>
+            </div>
+          </div>
+          <p class="mission-desc-text" id="mission-desc-text">
+            載入任務簡報中...
+          </p>
+          <div class="mission-objective-line">
+            <span>🎯 學習目標：<strong id="mission-learning-obj">理解指令順序</strong></span>
+          </div>
+
+          <!-- 三層漸進提示抽屜 -->
+          <div class="hint-drawer hidden" id="hint-drawer">
+            <div class="hint-drawer-header">
+              <strong>💡 NOVA 智慧輔助提示（使用提示是聰明的學習策略，不扣經驗值！）</strong>
+              <button type="button" class="btn-close-inline" id="btn-close-hint">✕</button>
+            </div>
+            <div class="hint-tier-list" id="hint-tier-list"></div>
+            <div class="hint-drawer-footer">
+              <button type="button" class="btn-secondary btn-xs" id="btn-next-hint-tier">解鎖下一層提示 ➔</button>
+              <button type="button" class="btn-primary btn-xs hidden" id="btn-load-guided-example">📥 載入基礎範例程式</button>
+            </div>
+          </div>
+
+          <!-- 四段式概念引導面板 -->
+          <div class="four-step-panel" id="four-step-panel">
+            <div class="four-step-grid">
+              <div class="step-box">
+                <span class="step-badge">1. 具體操作</span>
+                <p id="guide-step-1">-</p>
+              </div>
+              <div class="step-box">
+                <span class="step-badge">2. 視覺化理解</span>
+                <p id="guide-step-2">-</p>
+              </div>
+              <div class="step-box">
+                <span class="step-badge">3. 邏輯理解</span>
+                <p id="guide-step-3">-</p>
+              </div>
+              <div class="step-box">
+                <span class="step-badge">4. 積木與程式碼</span>
+                <p id="guide-step-4">-</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phaser 3 2D 俯視角像素基地地圖容器 -->
+        <div class="phaser-stage-wrapper">
+          <div id="phaser-game-container" class="phaser-canvas-box"></div>
+          <!-- 基地裝飾展示角落 -->
+          <div class="base-decor-corner" id="base-decor-corner" title="目前已裝備的基地裝飾">
+            <span id="base-decor-icon">🌱</span>
+            <small id="base-decor-name">全息生態盆栽</small>
+          </div>
+        </div>
+
+        <!-- 1～4 人合作角色分工與安全快捷訊息列 -->
+        <div class="coop-bar-card">
+          <div class="coop-role-row">
+            <div class="coop-role-info">
+              <span class="role-dot"></span>
+              <strong id="coop-mode-title">單人修復模式（1 人完整流程）</strong>
+              <span id="coop-role-desc" class="role-pill">全能修復員：分析地圖 → 排列指令 → 執行測試 → 觀察除錯</span>
+            </div>
+            <button type="button" class="btn-secondary btn-xs hidden" id="btn-pass-turn" title="將主要編輯權輪替給下一位隊友">
+              🔄 輪替操作權
+            </button>
+          </div>
+
+          <!-- 多人成員名單與快捷訊息按鈕 -->
+          <div class="coop-members-row" id="coop-members-row"></div>
+
+          <div class="quick-chat-row">
+            <span class="quick-chat-label">💬 安全快捷討論：</span>
+            <div class="quick-msg-btns" id="quick-msg-btns"></div>
+            <div class="quick-emoji-btns" id="quick-emoji-btns"></div>
+          </div>
+          <div class="coop-toast-feed" id="coop-toast-feed"></div>
+        </div>
+      </section>
+
+      <!-- 右側：指令卡／Blockly 編輯器、執行控制列、Python 預覽與除錯步驟紀錄 -->
+      <section class="right-editor-column">
+        <!-- 編輯器模式切換與工具列 -->
+        <div class="editor-toolbar">
+          <div class="editor-mode-tabs">
+            <button type="button" class="mode-tab-btn active" id="tab-mode-cards" title="初學者直覺指令卡排列模式">
+              🃏 指令卡模式
+            </button>
+            <button type="button" class="mode-tab-btn" id="tab-mode-blockly" title="Google Blockly 程式積木編輯模式">
+              🧩 Blockly 積木模式
+            </button>
+            <button type="button" class="mode-tab-btn" id="tab-mode-split" title="並排對照 Python 程式碼">
+              🐍 並排 Python 對照
+            </button>
+          </div>
+
+          <div class="editor-history-btns">
+            <button type="button" class="btn-tool" id="btn-editor-undo" title="復原上一步 (Undo)">↩️ 復原</button>
+            <button type="button" class="btn-tool" id="btn-editor-redo" title="重做 (Redo)">↪️ 重做</button>
+            <button type="button" class="btn-tool" id="btn-editor-example" title="載入此關卡的教學示範積木">📘 範例</button>
+            <button type="button" class="btn-tool btn-tool-danger" id="btn-editor-clear" title="清空目前工作區（需確認）">🗑️ 清空</button>
+          </div>
+        </div>
+
+        <!-- 多人觀察者鎖定橫幅 -->
+        <div class="editor-lock-banner hidden" id="editor-lock-banner">
+          🔒 目前由隊友 <strong id="lock-owner-name">-</strong> 持有主要編輯權。你可以即時觀看他的積木變化，並使用下方快捷訊息提出想法！（過關後將自動輪替給你）
+        </div>
+
+        <!-- 編輯器主容器（包含 ActionCard 編輯器、Blockly 工作區、Python 並排預覽） -->
+        <div class="editor-body-split" id="editor-body-split">
+          <div class="editor-primary-pane">
+            <!-- Stage 1 指令卡容器 -->
+            <div id="action-card-container" class="editor-pane-layer"></div>
+            <!-- Google Blockly 容器 -->
+            <div id="blockly-wrapper" class="editor-pane-layer hidden">
+              <div id="blockly-div" class="blockly-mount"></div>
+            </div>
+          </div>
+
+          <!-- Python 即時對照面板 -->
+          <div class="python-preview-pane hidden" id="python-preview-pane">
+            <div class="python-pane-header">
+              <span>🐍 Python 語法即時對照（唯讀學習預覽）</span>
+              <small>積木更動時自動更新</small>
+            </div>
+            <pre class="python-code-box"><code id="python-code-content"></code></pre>
+          </div>
+        </div>
+
+        <!-- 執行控制列 (執行、暫停/繼續、單步執行、重新開始、速度調整) -->
+        <div class="execution-control-bar">
+          <div class="exec-main-btns">
+            <button type="button" class="btn-exec btn-run" id="btn-run-program">
+              ▶️ 執行程式
+            </button>
+            <button type="button" class="btn-exec btn-pause" id="btn-pause-program" disabled>
+              ⏸️ 暫停
+            </button>
+            <button type="button" class="btn-exec btn-step" id="btn-step-program">
+              ⏭️ 單步執行
+            </button>
+            <button type="button" class="btn-exec btn-reset" id="btn-reset-program">
+              🔄 重新開始
+            </button>
+          </div>
+
+          <div class="exec-speed-control">
+            <label for="exec-speed-select">⚡ 速度：</label>
+            <select id="exec-speed-select">
+              <option value="600">0.5x 慢速觀察</option>
+              <option value="360" selected>1.0x 標準速度</option>
+              <option value="180">2.0x 快速執行</option>
+              <option value="80">4.0x 極速測試</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 執行狀態、錯誤定位診斷與步驟紀錄區 -->
+        <div class="execution-Console-card">
+          <div class="console-status-banner" id="console-status-banner">
+            🤖 準備就緒：排列好指令後，按下「▶️ 執行程式」或「⏭️ 單步執行」觀察機器人行動！
+          </div>
+          <div class="console-step-log" id="console-step-log"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ==================== 3. 主選單覆蓋層 (Main Menu Overlay) ==================== -->
+    <div class="modal-overlay hidden" id="main-menu-modal">
+      <div class="modal-card main-menu-card">
+        <div class="main-menu-hero">
+          <div class="hero-badge">SCI-FI CODING ADVENTURE ・ 1～4 PLAYERS</div>
+          <h1>NOVA Protocol — 失落基地</h1>
+          <p>
+            西元 2186 年，NOVA 人工智慧研究基地因未知故障陷入停擺。<br/>
+            加入基地修復小隊，透過編排指令與邏輯解謎，喚醒機器人、重啟八大研究區域！
+          </p>
+        </div>
+
+        <div class="main-menu-profile-strip">
+          <div>
+            <label>你的修復員暱稱（不需真實姓名）：</label>
+            <div class="inline-nickname-form">
+              <input type="text" id="menu-nickname-input" maxlength="24" placeholder="輸入暱稱或使用隨機代號" />
+              <button type="button" class="btn-secondary btn-sm" id="btn-save-menu-nickname">儲存暱稱</button>
+            </div>
+            <small>學員代號：<code id="menu-player-code-display">NV-000000</code> ・ 稱號：<strong id="menu-title-display">實習修復員</strong></small>
+          </div>
+          <div class="menu-session-join-box">
+            <label>課堂場次代碼（選填，老師提供時輸入）：</label>
+            <div class="inline-nickname-form">
+              <input type="text" id="menu-session-code-input" placeholder="例如 CLS-8F3K9" />
+              <button type="button" class="btn-secondary btn-sm" id="btn-menu-join-session">加入課堂</button>
+            </div>
+            <small id="menu-session-status-text">尚未加入課堂場次（單人模式可直接開始遊玩）</small>
+          </div>
+        </div>
+
+        <div class="main-menu-grid">
+          <button type="button" class="menu-big-btn primary-glow" id="btn-menu-continue">
+            <span class="menu-btn-icon">🚀</span>
+            <div>
+              <strong>開始 / 繼續單人冒險</strong>
+              <small>1 人完整體驗所有章節與單人替代合作機制</small>
+            </div>
+          </button>
+
+          <button type="button" class="menu-big-btn" id="btn-menu-coop">
+            <span class="menu-btn-icon">🤝</span>
+            <div>
+              <strong>1～4 人合作大廳</strong>
+              <small>建立房間或輸入房間代碼，與隊友分工解謎並輪替操作權</small>
+            </div>
+          </button>
+
+          <button type="button" class="menu-big-btn" id="btn-menu-levels">
+            <span class="menu-btn-icon">🗺️</span>
+            <div>
+              <strong>章節與關卡選擇</strong>
+              <small>7 大章節 × 基礎／標準／挑戰三層難度自由探索</small>
+            </div>
+          </button>
+
+          <button type="button" class="menu-big-btn" id="btn-menu-customize">
+            <span class="menu-btn-icon">🏆</span>
+            <div>
+              <strong>機器人外觀與成就收藏</strong>
+              <small>更換機體塗裝、頭部配件、基地裝飾與檢視徽章</small>
+            </div>
+          </button>
+
+          <button type="button" class="menu-big-btn" id="btn-menu-teacher">
+            <span class="menu-btn-icon">🎓</span>
+            <div>
+              <strong>教師端／教學管理介面</strong>
+              <small>建立課堂場次、觀察學生概念證據、指派任務與難度</small>
+            </div>
+          </button>
+
+          <button type="button" class="menu-big-btn" id="btn-menu-settings">
+            <span class="menu-btn-icon">⚙️</span>
+            <div>
+              <strong>遊戲設定與操作說明</strong>
+              <small>調整音效、動畫播放速度、文字大小與混齡教學指引</small>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 4. 關卡與章節選擇 Modal ==================== -->
+    <div class="modal-overlay hidden" id="level-select-modal">
+      <div class="modal-card modal-wide">
+        <div class="modal-header">
+          <div>
+            <h2>🗺️ NOVA 基地章節與三層難度選擇</h2>
+            <small>所有章節皆支援基礎（Guided）、標準（Core）與挑戰（Challenge），不依年級限制進度</small>
+          </div>
+          <button type="button" class="btn-close-modal" id="btn-close-levels">✕</button>
+        </div>
+        <div class="modal-body" id="level-select-body"></div>
+      </div>
+    </div>
+
+    <!-- ==================== 5. 1～4 人合作房間大廳 Modal ==================== -->
+    <div class="modal-overlay hidden" id="lobby-modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <h2>🤝 1～4 人修復小隊合作大廳</h2>
+            <small>代碼邀請制・無公開陌生配對・過關自動輪替主操作權</small>
+          </div>
+          <button type="button" class="btn-close-modal" id="btn-close-lobby">✕</button>
+        </div>
+        <div class="modal-body" id="lobby-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- ==================== 6. 角色外觀、基地裝飾與成就收藏 Modal ==================== -->
+    <div class="modal-overlay hidden" id="profile-modal">
+      <div class="modal-card modal-wide">
+        <div class="modal-header">
+          <div>
+            <h2>🤖 機器人塗裝、基地裝飾與成就收藏</h2>
+            <small>所有外觀均為純裝飾榮譽獎勵，不影響機器人性能</small>
+          </div>
+          <button type="button" class="btn-close-modal" id="btn-close-profile">✕</button>
+        </div>
+        <div class="modal-body" id="profile-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- ==================== 7. 設定與說明 Modal ==================== -->
+    <div class="modal-overlay hidden" id="settings-modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>⚙️ 遊戲設定與操作說明</h2>
+          <button type="button" class="btn-close-modal" id="btn-close-settings">✕</button>
+        </div>
+        <div class="modal-body" id="settings-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- ==================== 8. 清空工作區確認 Modal (防止誤刪) ==================== -->
+    <div class="modal-overlay hidden" id="clear-confirm-modal">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h2>⚠️ 確認清空工作區？</h2>
+        </div>
+        <div class="modal-body">
+          <p>確定要清空目前排列的所有指令卡／積木嗎？清空後仍可按「↩️ 復原」找回。</p>
+          <div class="modal-footer-btns">
+            <button type="button" class="btn-secondary" id="btn-cancel-clear">取消保留</button>
+            <button type="button" class="btn-danger" id="btn-confirm-clear">確定清空</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 9. 過關結算與課後反思 Modal ==================== -->
+    <div class="modal-overlay hidden" id="victory-modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>🎉 任務完成！基地設備已恢復運作</h2>
+          <button type="button" class="btn-close-modal" id="btn-close-victory">✕</button>
+        </div>
+        <div class="modal-body" id="victory-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- ==================== 10. 教師端管理中心 Modal ==================== -->
+    <div class="modal-overlay hidden" id="teacher-modal"></div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
+
